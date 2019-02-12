@@ -339,8 +339,7 @@ select_partition () {
   PARTITION=''
 
   # list only the partitions in /proc/partitions.
-  parts=$(cat /proc/partitions | awk '{ if ($4!="name") { print $4 " "} }' \
-          | egrep "[0-9]" | egrep -v "loop" | tr -d '\n')
+  parts=$(lsblk -l | egrep "part" | egrep -v "loop" | awk '{print $1}')
 
   # remove any partitions we have already previously used
   if [ -n "$exclude" ]; then
@@ -359,7 +358,7 @@ select_partition () {
     if [ ${part:0:2} = "md" ]; then
       parttype="RAID"
     else
-      rootdev=$(echo $part | sed 's/[0-9]//g')
+      rootdev=$(lsblk -s -l /dev/${part} | tail -n 1)
       parttype=$(fdisk -l /dev/$rootdev | grep $part | grep Linux)
     fi
     if [ -n "$parttype" ]; then
@@ -693,7 +692,7 @@ create_partitions() {
           exit 1
        fi
        # set the partition number on the device.
-       if [ -n "$( echo $ldrive | grep -E "cciss|ida|nvme" )" ]; then
+       if [ -n "$( echo $ldrive | grep -E "cciss|ida|nvme|mmcblk" )" ]; then
           # if this is a cciss
           ROOT_PARTITION=$ldrive"p3"
           efipart=$ldrive"p2"
@@ -735,7 +734,7 @@ create_partitions() {
       fi
 
       # set the partition number on the device.
-      if [ -n "$( echo $ldrive | grep -E "cciss|ida|nvme" )" ]; then
+      if [ -n "$( echo $ldrive | grep -E "cciss|ida|nvme|mmcblk" )" ]; then
         # if this is a cciss
         ROOT_PARTITION=$ldrive"p1"
       else
